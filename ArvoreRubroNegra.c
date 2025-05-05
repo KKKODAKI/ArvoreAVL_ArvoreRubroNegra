@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Enum para representar as cores dos nós
 typedef enum { RED, BLACK } Color;
 
+// Estrutura do nó da árvore
 typedef struct Node {
     int codigo;
     char nome[100];
@@ -13,19 +15,22 @@ typedef struct Node {
     struct Node *esq, *dir, *pai;
 } Node;
 
+// Ponteiro global para a raiz da árvore
 Node* raiz = NULL;
 
+// Cria um novo nó com os dados do produto
 Node* criarNo(int codigo, char* nome, int quantidade, float preco) {
     Node* novo = (Node*)malloc(sizeof(Node));
     novo->codigo = codigo;
     strcpy(novo->nome, nome);
     novo->quantidade = quantidade;
     novo->preco = preco;
-    novo->cor = RED;
+    novo->cor = RED; // Novos nós começam como vermelhos
     novo->esq = novo->dir = novo->pai = NULL;
     return novo;
 }
 
+// Rotação à esquerda (usada para rebalancear a árvore)
 void rotacaoEsquerda(Node** raiz, Node* x) {
     Node* y = x->dir;
     x->dir = y->esq;
@@ -38,6 +43,7 @@ void rotacaoEsquerda(Node** raiz, Node* x) {
     x->pai = y;
 }
 
+// Rotação à direita (espelho da rotação à esquerda)
 void rotacaoDireita(Node** raiz, Node* y) {
     Node* x = y->esq;
     y->esq = x->dir;
@@ -50,21 +56,25 @@ void rotacaoDireita(Node** raiz, Node* y) {
     y->pai = x;
 }
 
+// Ajusta a árvore após uma inserção para manter as propriedades da árvore rubro-negra
 void ajustarInsercao(Node** raiz, Node* z) {
     while (z != *raiz && z->pai && z->pai->cor == RED) {
-        if (!z->pai->pai) break;
+        if (!z->pai->pai) break; // Garante que o avô exista
         if (z->pai == z->pai->pai->esq) {
-            Node* y = z->pai->pai->dir;
+            Node* y = z->pai->pai->dir; // Tio
             if (y && y->cor == RED) {
+                // Caso 1: Tio vermelho
                 z->pai->cor = BLACK;
                 y->cor = BLACK;
                 z->pai->pai->cor = RED;
                 z = z->pai->pai;
             } else {
                 if (z == z->pai->dir) {
+                    // Caso 2: Triângulo
                     z = z->pai;
                     rotacaoEsquerda(raiz, z);
                 }
+                // Caso 3: Linha
                 if (z->pai) z->pai->cor = BLACK;
                 if (z->pai && z->pai->pai) {
                     z->pai->pai->cor = RED;
@@ -72,6 +82,7 @@ void ajustarInsercao(Node** raiz, Node* z) {
                 }
             }
         } else {
+            // Espelhamento dos casos acima
             Node* y = z->pai->pai->esq;
             if (y && y->cor == RED) {
                 z->pai->cor = BLACK;
@@ -91,9 +102,10 @@ void ajustarInsercao(Node** raiz, Node* z) {
             }
         }
     }
-    if (*raiz) (*raiz)->cor = BLACK;
+    if (*raiz) (*raiz)->cor = BLACK; // A raiz deve sempre ser preta
 }
 
+// Inserção em árvore binária de busca (sem considerar as cores)
 Node* inserirBST(Node* raiz, Node* z) {
     if (!raiz) return z;
     if (z->codigo < raiz->codigo) {
@@ -106,13 +118,15 @@ Node* inserirBST(Node* raiz, Node* z) {
     return raiz;
 }
 
+// Insere um novo produto na árvore
 void inserir(Node** raiz, int codigo, char* nome, int quantidade, float preco) {
     Node* novo = criarNo(codigo, nome, quantidade, preco);
-    *raiz = inserirBST(*raiz, novo);
-    ajustarInsercao(raiz, novo);
-    if (*raiz) (*raiz)->cor = BLACK;
+    *raiz = inserirBST(*raiz, novo); // Inserção padrão
+    ajustarInsercao(raiz, novo);     // Ajuste rubro-negro
+    if (*raiz) (*raiz)->cor = BLACK; // Garante raiz preta
 }
 
+// Busca um produto pelo código
 Node* buscarProduto(Node* raiz, int codigo) {
     if (!raiz || raiz->codigo == codigo) return raiz;
     if (codigo < raiz->codigo)
@@ -121,6 +135,7 @@ Node* buscarProduto(Node* raiz, int codigo) {
         return buscarProduto(raiz->dir, codigo);
 }
 
+// Percorre e exibe a árvore em ordem
 void emOrdem(Node* raiz) {
     if (!raiz) return;
     emOrdem(raiz->esq);
@@ -130,11 +145,13 @@ void emOrdem(Node* raiz) {
     emOrdem(raiz->dir);
 }
 
+// Retorna o nó com menor valor (mais à esquerda)
 Node* minimo(Node* no) {
     while (no->esq) no = no->esq;
     return no;
 }
 
+// Substitui um nó da árvore por outro
 void substituir(Node** raiz, Node* u, Node* v) {
     if (!u->pai)
         *raiz = v;
@@ -145,6 +162,7 @@ void substituir(Node** raiz, Node* u, Node* v) {
     if (v) v->pai = u->pai;
 }
 
+// Remove um produto da árvore pelo código
 void remover(Node** raiz, int codigo) {
     Node* z = buscarProduto(*raiz, codigo);
     if (!z) return;
@@ -159,7 +177,7 @@ void remover(Node** raiz, int codigo) {
         x = z->esq;
         substituir(raiz, z, z->esq);
     } else {
-        y = minimo(z->dir);
+        y = minimo(z->dir); // Sucessor
         corOriginal = y->cor;
         x = y->dir;
         if (y->pai == z) {
@@ -178,12 +196,13 @@ void remover(Node** raiz, int codigo) {
     free(z);
 
     if (corOriginal == BLACK && x != NULL) {
-        ajustarInsercao(raiz, x); // simplificação: reutiliza a lógica de inserção para rebalancear
+        ajustarInsercao(raiz, x); // Reutilizando ajuste de inserção (não ideal)
     }
 
     if (*raiz) (*raiz)->cor = BLACK;
 }
 
+// Função principal com menu
 int main() {
     int opcao;
     while (1) {
@@ -207,7 +226,7 @@ int main() {
             scanf("%d", &codigo);
 
             printf("Nome: "); 
-            scanf("%s", nome);
+            scanf(" %[^\n]", nome); // Permite nomes com espaços
 
             printf("Quantidade: "); 
             scanf("%d", &quantidade);
@@ -238,5 +257,6 @@ int main() {
             printf("Opção inválida.\n");
         }
     }
+
     return 0;
 }
